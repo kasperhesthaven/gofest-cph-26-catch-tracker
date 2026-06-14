@@ -1,0 +1,17 @@
+{
+  "name": "GO Fest Tracker '26 CPH",
+  "short_name": "GO Fest",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "Offline tracker for Pokémon GO Fest 2026 in Copenhagen.",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
