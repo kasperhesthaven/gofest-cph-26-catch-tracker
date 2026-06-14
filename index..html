@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport"
+		content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<title>GO Fest Tracker '26 CPH</title>
+	<link rel="manifest" href="manifest.json">
+	<meta name="theme-color" content="#0f172a">
+
+	<link rel="icon" type="image/png"
+		href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
+	<link rel="apple-touch-icon"
+		href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
+
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		body {
+			padding-bottom: env(safe-area-inset-bottom, 32px);
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		::-webkit-scrollbar {
+			display: none;
+		}
+
+		.card-bg {
+			background-color: rgba(30, 41, 59, 0.85);
+			backdrop-filter: blur(8px);
+		}
+	</style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans select-none antialiased overscroll-none">
+
+	<header class="sticky top-0 z-50 bg-slate-900/95 border-b border-slate-700 p-4 shadow-xl">
+		<div class="max-w-md mx-auto">
+			<div class="flex justify-between items-center mb-3">
+				<div>
+					<h1 class="text-xl font-black tracking-tight text-amber-400">GO FEST 2026</h1>
+					<p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Copenhagen Companion</p>
+				</div>
+				<div class="flex gap-2">
+					<button id="hide-btn"
+						class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-xl transition border border-slate-600 active:scale-90">
+						Hide Done
+					</button>
+				</div>
+			</div>
+
+			<div class="bg-slate-800 h-5 rounded-full overflow-hidden relative border border-slate-600">
+				<div id="progress-bar"
+					class="bg-gradient-to-r from-amber-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
+				<span id="progress-text"
+					class="absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-widest uppercase text-white drop-shadow-md">0/0
+					CAUGHT</span>
+			</div>
+		</div>
+	</header>
+
+	<main class="max-w-md mx-auto p-4 space-y-6" id="app-container">
+	</main>
+
+	<script>
+		const buttonThemes = {
+			reg: {
+				active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.15)]",
+				inactive: "bg-slate-800/80 text-slate-400 border-slate-600"
+			},
+			shiny: {
+				active: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-[inset_0_0_12px_rgba(245,158,11,0.15)]",
+				inactive: "bg-slate-800/80 text-slate-400 border-slate-600"
+			},
+			hundo: {
+				active: "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[inset_0_0_12px_rgba(99,102,241,0.15)]",
+				inactive: "bg-slate-800/80 text-slate-400 border-slate-600"
+			}
+		};
+		// --- APP DATA WITH HABITATS & TARGET TYPES ---
+		// Types available: 'reg', 'shiny', 'hundo'. Omitting a type removes the button.
+		// --- UPDATED APP DATA FOR THE FINAL DAY ---
+		const habitats = [
+			{
+				id: 'raids', title: 'Raid Encounters', dotClass: 'bg-red-500',
+				pokemon: [
+					{ name: "Paldean Tauros (Combat Breed)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Mewtwo", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Moltres", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Entei", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Kyogre (Primal)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Groudon (Primal)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Shadow Groudon", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Shadow Kyogre", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Shadow Entei", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Shadow Moltres", types: ['reg', 'shiny', 'hundo'] }
+				]
+			},
+			{
+				id: 'specials', title: 'Mythicals & Secret Spawns', dotClass: 'bg-blue-500',
+				pokemon: [
+					{ name: "Zeraora (Special Research)", types: ['reg', 'hundo'] },
+					{ name: "Wash Rotom (Shiny Debut)", types: ['reg', 'shiny', 'hundo'] }
+				]
+			},
+			{
+				id: 'costumes', title: 'Event Costumes', dotClass: 'bg-pink-500',
+				pokemon: [
+					{ name: "Pikachu (Team Valor Hat)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Charmander (Pikachu Visor)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Caterpie (Poké Ball Hat)", types: ['reg', 'shiny', 'hundo'] }
+				]
+			},
+			{
+				id: 'unown', title: 'Unown Spawns', dotClass: 'bg-purple-500',
+				pokemon: [
+					{ name: "Unown (All Forms)", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "K-Unown", types: ['shiny'] },
+					{ name: "R-Unown", types: ['shiny'] }
+				]
+			},
+			{
+				id: 'wild', title: 'Wild Spawns', dotClass: 'bg-emerald-500',
+				pokemon: [
+					{ name: "Alolan Meowth", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Ponyta", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Alolan Marowak", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Scyther", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Flareon", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Nosepass", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Bagon", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Mudbray", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Comfey", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Dhelmise", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Charcadet", types: ['reg', 'shiny', 'hundo'] },
+					{ name: "Rockruff", types: ['reg', 'shiny', 'hundo'] }
+				]
+			}
+		];
+
+		let trackerState = JSON.parse(localStorage.getItem('goFest2026_CPH')) || {};
+		let hideCompleted = false;
+
+		const slugify = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '-');
+		const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(15); };
+
+		function isCompleted(id, requiredTypes) {
+			const current = trackerState[id] || {};
+			return requiredTypes.every(type => current[type] === true);
+		}
+
+		function renderApp() {
+			const container = document.getElementById('app-container');
+			container.innerHTML = '';
+
+			habitats.forEach(habitat => {
+				let habitatHtml = `<section class="pt-2"><h2 class="text-xs font-black tracking-widest text-slate-300 uppercase mb-3 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full ${habitat.dotClass}"></span> ${habitat.title}
+        </h2><div class="space-y-3">`;
+
+				let visibleCount = 0;
+
+				habitat.pokemon.forEach(mon => {
+					const id = slugify(mon.name);
+					if (!trackerState[id]) trackerState[id] = {};
+
+					const done = isCompleted(id, mon.types);
+					if (hideCompleted && done) return;
+					visibleCount++;
+
+					habitatHtml += `<div class="card-bg border ${done ? 'border-emerald-500/30 opacity-75' : 'border-slate-600'} rounded-2xl p-3 shadow-lg">
+            <div class="font-bold text-sm text-slate-100 tracking-wide mb-2">${mon.name}</div>
+            <div class="grid grid-cols-${mon.types.length} gap-2">`;
+
+					if (mon.types.includes('reg')) habitatHtml += createBtn(id, 'reg', 'Reg');
+					if (mon.types.includes('shiny')) habitatHtml += createBtn(id, 'shiny', '✨ Shiny');
+					if (mon.types.includes('hundo')) habitatHtml += createBtn(id, 'hundo', '💯 Hundo');
+
+					habitatHtml += `</div></div>`;
+				});
+
+				habitatHtml += `</div></section>`;
+				if (visibleCount > 0) container.innerHTML += habitatHtml;
+			});
+
+			updateProgress();
+		}
+
+		function createBtn(id, type, label) {
+			const isChecked = trackerState[id]?.[type];
+			const classes = isChecked ? buttonThemes[type].active : buttonThemes[type].inactive;
+
+			return `
+        <button data-id="${id}" data-type="${type}" 
+          class="py-3 px-1 rounded-xl text-xs font-black uppercase tracking-wider border transition-all active:scale-95 duration-75 ${classes}">
+          ${label}
+        </button>
+      `;
+		}
+
+		document.getElementById('app-container').addEventListener('click', (e) => {
+			const btn = e.target.closest('button[data-id]');
+			if (!btn) return;
+
+			triggerHaptic();
+			const { id, type } = btn.dataset;
+
+			trackerState[id][type] = !trackerState[id][type];
+			localStorage.setItem('goFest2026_CPH', JSON.stringify(trackerState));
+
+			renderApp();
+		});
+
+		document.getElementById('hide-btn').addEventListener('click', (e) => {
+			triggerHaptic();
+			hideCompleted = !hideCompleted;
+			e.target.classList.toggle('bg-emerald-600');
+			e.target.classList.toggle('text-white');
+			e.target.classList.toggle('border-emerald-400');
+			renderApp();
+		});
+
+		function updateProgress() {
+			let total = 0, caught = 0;
+			habitats.forEach(h => h.pokemon.forEach(mon => {
+				mon.types.forEach(type => {
+					total++;
+					if (trackerState[slugify(mon.name)]?.[type]) caught++;
+				});
+			}));
+
+			const pct = total === 0 ? 0 : (caught / total) * 100;
+			document.getElementById('progress-bar').style.width = `${pct}%`;
+			document.getElementById('progress-text').innerText = `${caught} / ${total} CAUGHT`;
+		}
+
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', () => {
+				navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Failed', err));
+			});
+		}
+
+		renderApp();
+	</script>
+</body>
+</html>
